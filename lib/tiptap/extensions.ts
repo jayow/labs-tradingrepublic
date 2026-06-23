@@ -5,6 +5,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
 import type { Extensions } from "@tiptap/core";
+import { Embed } from "@/lib/tiptap/embed";
 
 // React-free so the SAME list powers both the client editor (useEditor) and the
 // server renderer (generateHTML). If these ever diverge, nodes like YouTube
@@ -36,5 +37,6 @@ export function getExtensions(placeholder = "Write your story…"): Extensions {
     }),
     CodeBlockLowlight.configure({ lowlight }),
     Placeholder.configure({ placeholder }),
+    Embed,
   ];
 }

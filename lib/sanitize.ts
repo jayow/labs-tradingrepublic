@@ -4,21 +4,22 @@ import DOMPurify from "isomorphic-dompurify";
 import { getExtensions } from "@/lib/tiptap/extensions";
 import type { Json } from "@/lib/database.types";
 
-const YOUTUBE_EMBED =
-  /^https:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[\w-]+/;
+// Only iframes whose src matches one of these embed endpoints survive
+// sanitization — the single most important XSS control for user content.
+const ALLOWED_IFRAME =
+  /^https:\/\/(www\.)?(youtube(-nocookie)?\.com\/embed\/[\w-]+|instagram\.com\/(p|reel|tv)\/[^/]+\/embed|tiktok\.com\/embed\/v2\/\d+|facebook\.com\/plugins\/(post|video)\.php)/;
 
 let hooksReady = false;
 
 function ensureHooks() {
   if (hooksReady) return;
 
-  // Drop any iframe that is not a YouTube embed — iframes are the main XSS
-  // surface in user content.
+  // Drop any iframe that is not an allowlisted embed.
   DOMPurify.addHook("uponSanitizeElement", (node, data) => {
     if (data.tagName === "iframe") {
       const el = node as Element;
       const src = el.getAttribute("src") ?? "";
-      if (!YOUTUBE_EMBED.test(src)) {
+      if (!ALLOWED_IFRAME.test(src)) {
         el.parentNode?.removeChild(el);
       }
     }
@@ -50,6 +51,8 @@ export function renderPostHtml(json: Json): string {
       "allow",
       "allowfullscreen",
       "frameborder",
+      "scrolling",
+      "loading",
       "target",
       "width",
       "height",

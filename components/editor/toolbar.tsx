@@ -19,6 +19,7 @@ import {
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { detectEmbed } from "@/lib/embeds";
 
 function Btn({
   onClick,
@@ -93,15 +94,31 @@ export function Toolbar({
       .run();
   }
 
-  function addYoutube() {
+  function addEmbed() {
     if (!editor) return;
-    const url = window.prompt("YouTube URL");
+    const url = window.prompt(
+      "Paste a link to embed (YouTube, Instagram, TikTok, Facebook)",
+    );
     if (!url) return;
-    if (!/youtu\.?be/.test(url)) {
-      window.alert("That doesn't look like a YouTube URL.");
+    const result = detectEmbed(url);
+    if (!result) {
+      window.alert(
+        "That link isn't supported. Try a YouTube, Instagram, TikTok, or Facebook URL.",
+      );
       return;
     }
-    editor.commands.setYoutubeVideo({ src: url });
+    if (result.provider === "youtube") {
+      editor.commands.setYoutubeVideo({ src: url });
+      return;
+    }
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "embed",
+        attrs: { src: result.src, provider: result.provider, url },
+      })
+      .run();
   }
 
   function addImageByUrl() {
@@ -161,7 +178,7 @@ export function Toolbar({
       <Btn title="Upload image" disabled={uploading} onClick={onPickImage}>
         <ImageUp className="h-4 w-4" />
       </Btn>
-      <Btn title="Embed YouTube" onClick={addYoutube}>
+      <Btn title="Embed (YouTube, Instagram, TikTok, Facebook)" onClick={addEmbed}>
         <Video className="h-4 w-4" />
       </Btn>
     </div>
