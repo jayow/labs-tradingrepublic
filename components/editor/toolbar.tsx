@@ -14,7 +14,8 @@ import {
   Quote,
   Code,
   Link as LinkIcon,
-  Image as ImageIcon,
+  ImageUp,
+  ImagePlus,
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -103,10 +104,17 @@ export function Toolbar({
     editor.commands.setYoutubeVideo({ src: url });
   }
 
+  function addImageByUrl() {
+    if (!editor) return;
+    const url = window.prompt("Image URL", "https://");
+    if (!url || url === "https://") return;
+    editor.chain().focus().setImage({ src: url }).run();
+  }
+
   return (
     <div
       ref={ref}
-      className="flex flex-wrap items-center gap-0.5 border-b border-border p-1.5"
+      className="sticky top-14 z-10 flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-border bg-card p-1.5"
     >
       <Btn title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
         <Bold className="h-4 w-4" />
@@ -147,8 +155,11 @@ export function Toolbar({
       <Btn title="Link" active={editor.isActive("link")} onClick={setLink}>
         <LinkIcon className="h-4 w-4" />
       </Btn>
-      <Btn title="Insert image" disabled={uploading} onClick={onPickImage}>
-        <ImageIcon className="h-4 w-4" />
+      <Btn title="Image from URL" onClick={addImageByUrl}>
+        <ImagePlus className="h-4 w-4" />
+      </Btn>
+      <Btn title="Upload image" disabled={uploading} onClick={onPickImage}>
+        <ImageUp className="h-4 w-4" />
       </Btn>
       <Btn title="Embed YouTube" onClick={addYoutube}>
         <Video className="h-4 w-4" />
