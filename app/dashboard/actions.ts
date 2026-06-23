@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import { renderPostHtml } from "@/lib/sanitize";
+import { PREVIEW } from "@/lib/preview";
 import type { Json } from "@/lib/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
@@ -30,6 +31,9 @@ async function uniqueSlug(
 }
 
 export async function createDraft() {
+  if (PREVIEW) {
+    redirect("/dashboard/posts/new/edit");
+  }
   const profile = await requireUser();
   const supabase = await createClient();
   const slug = await uniqueSlug(supabase, "untitled");

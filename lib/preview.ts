@@ -172,7 +172,26 @@ export const previewPosts: Post[] = [
 ];
 
 export function previewPostById(id: string): Post | null {
-  return previewPosts.find((p) => p.id === id) ?? null;
+  const found = previewPosts.find((p) => p.id === id);
+  if (found) return found;
+  // The "New post" flow redirects here in preview — a fresh blank draft.
+  if (id === "new") {
+    return {
+      id: "new",
+      author_id: previewProfile.id,
+      title: "Untitled",
+      slug: "new",
+      excerpt: null,
+      cover_image_url: null,
+      content_json: { type: "doc", content: [] },
+      content_html: null,
+      status: "draft",
+      published_at: null,
+      created_at: "2026-06-23T00:00:00.000Z",
+      updated_at: "2026-06-23T00:00:00.000Z",
+    };
+  }
+  return null;
 }
 
 export function previewPostBySlug(slug: string): Post | null {
