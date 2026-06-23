@@ -4,17 +4,24 @@ import { createClient } from "@/utils/supabase/server";
 import { createDraft } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PREVIEW, previewPosts } from "@/lib/preview";
 
 export const metadata = { title: "Your posts" };
 
 export default async function DashboardPage() {
   const profile = await requireUser();
-  const supabase = await createClient();
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("id, title, slug, status, updated_at")
-    .eq("author_id", profile.id)
-    .order("updated_at", { ascending: false });
+  let posts;
+  if (PREVIEW) {
+    posts = previewPosts;
+  } else {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("posts")
+      .select("id, title, slug, status, updated_at")
+      .eq("author_id", profile.id)
+      .order("updated_at", { ascending: false });
+    posts = data;
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8">

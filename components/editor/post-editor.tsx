@@ -28,10 +28,12 @@ export function PostEditor({
   post,
   authorId,
   initialTags,
+  preview = false,
 }: {
   post: Post;
   authorId: string;
   initialTags: string[];
+  preview?: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +70,10 @@ export function PostEditor({
 
   const doSave = useCallback(async () => {
     if (!editor) return;
+    if (preview) {
+      setSaveState("saved");
+      return;
+    }
     setSaveState("saving");
     try {
       await savePost(post.id, {
@@ -81,7 +87,7 @@ export function PostEditor({
       setSaveState("idle");
       toast.error("Couldn't save changes");
     }
-  }, [editor, post.id]);
+  }, [editor, post.id, preview]);
 
   const scheduleSave = useCallback(() => {
     setSaveState("saving");
@@ -90,6 +96,9 @@ export function PostEditor({
   }, [doSave]);
 
   async function uploadFile(file: File): Promise<string> {
+    if (preview) {
+      throw new Error("preview");
+    }
     const supabase = createClient();
     const ext = (file.name.split(".").pop() ?? "png").toLowerCase();
     const path = `${authorId}/${post.id}/${crypto.randomUUID()}.${ext}`;
@@ -105,6 +114,10 @@ export function PostEditor({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !editor) return;
+    if (preview) {
+      toast.info("Uploads are disabled in preview mode.");
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadFile(file);
@@ -120,6 +133,10 @@ export function PostEditor({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (preview) {
+      toast.info("Uploads are disabled in preview mode.");
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadFile(file);
@@ -134,6 +151,7 @@ export function PostEditor({
   }
 
   async function saveTags() {
+    if (preview) return;
     const names = tagsValue
       .split(",")
       .map((t) => t.trim())
@@ -146,6 +164,11 @@ export function PostEditor({
   }
 
   async function handlePublish() {
+    if (preview) {
+      setStatus("published");
+      toast.success("Published (preview — nothing is saved)");
+      return;
+    }
     setPublishing(true);
     try {
       await doSave();
@@ -162,6 +185,11 @@ export function PostEditor({
   }
 
   async function handleUnpublish() {
+    if (preview) {
+      setStatus("draft");
+      toast.success("Moved back to draft (preview)");
+      return;
+    }
     setPublishing(true);
     try {
       await unpublishPost(post.id);
@@ -176,6 +204,10 @@ export function PostEditor({
   }
 
   async function handleDelete() {
+    if (preview) {
+      toast.info("Delete is disabled in preview mode.");
+      return;
+    }
     if (!window.confirm("Delete this post? This cannot be undone.")) return;
     try {
       await deletePost(post.id);

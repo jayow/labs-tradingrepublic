@@ -2,10 +2,20 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createPublicClient } from "@/utils/supabase/public";
 import { PostCard } from "@/components/post-card";
+import { PREVIEW, previewPosts, previewProfile } from "@/lib/preview";
 
 export const revalidate = 60;
 
 async function getAuthor(id: string) {
+  if (PREVIEW) {
+    return id === previewProfile.id
+      ? {
+          id: previewProfile.id,
+          display_name: previewProfile.display_name,
+          bio: previewProfile.bio,
+        }
+      : null;
+  }
   const supabase = createPublicClient();
   const { data } = await supabase
     .from("profiles")
@@ -38,13 +48,21 @@ export default async function AuthorPage({
   const author = await getAuthor(id);
   if (!author) notFound();
 
-  const supabase = createPublicClient();
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("id, title, slug, excerpt, cover_image_url, published_at")
-    .eq("author_id", id)
-    .eq("status", "published")
-    .order("published_at", { ascending: false });
+  let posts;
+  if (PREVIEW) {
+    posts = previewPosts.filter(
+      (p) => p.author_id === id && p.status === "published",
+    );
+  } else {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("posts")
+      .select("id, title, slug, excerpt, cover_image_url, published_at")
+      .eq("author_id", id)
+      .eq("status", "published")
+      .order("published_at", { ascending: false });
+    posts = data;
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12">

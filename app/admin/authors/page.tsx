@@ -5,30 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { PREVIEW, previewAuthors } from "@/lib/preview";
 
 export const metadata = { title: "Authors" };
 
 export default async function AuthorsPage() {
   const me = await requireAdmin();
-  const admin = createAdminClient();
 
-  const {
-    data: { users },
-  } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const { data: profiles } = await admin
-    .from("profiles")
-    .select("id, role, display_name");
-  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  let rows: {
+    id: string;
+    email: string;
+    role: "admin" | "author";
+    displayName: string | null;
+    lastSignIn: string | null | undefined;
+  }[];
 
-  const rows = users
-    .map((u) => ({
-      id: u.id,
-      email: u.email ?? "—",
-      role: profileById.get(u.id)?.role ?? "author",
-      displayName: profileById.get(u.id)?.display_name ?? null,
-      lastSignIn: u.last_sign_in_at,
-    }))
-    .sort((a, b) => a.email.localeCompare(b.email));
+  if (PREVIEW) {
+    rows = previewAuthors;
+  } else {
+    const admin = createAdminClient();
+    const {
+      data: { users },
+    } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("id, role, display_name");
+    const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    rows = users
+      .map((u) => ({
+        id: u.id,
+        email: u.email ?? "—",
+        role: profileById.get(u.id)?.role ?? ("author" as const),
+        displayName: profileById.get(u.id)?.display_name ?? null,
+        lastSignIn: u.last_sign_in_at,
+      }))
+      .sort((a, b) => a.email.localeCompare(b.email));
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">

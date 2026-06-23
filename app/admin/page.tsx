@@ -2,18 +2,28 @@ import Link from "next/link";
 import { Users, FileText } from "lucide-react";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { Card } from "@/components/ui/card";
+import { PREVIEW, previewPosts, previewAuthors } from "@/lib/preview";
 
 export const metadata = { title: "Admin" };
 
 export default async function AdminHome() {
-  const admin = createAdminClient();
+  let postCount: number | null;
+  let userCount: number;
 
-  const { count: postCount } = await admin
-    .from("posts")
-    .select("id", { count: "exact", head: true });
-  const {
-    data: { users },
-  } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  if (PREVIEW) {
+    postCount = previewPosts.length;
+    userCount = previewAuthors.length;
+  } else {
+    const admin = createAdminClient();
+    const { count } = await admin
+      .from("posts")
+      .select("id", { count: "exact", head: true });
+    postCount = count;
+    const {
+      data: { users },
+    } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    userCount = users.length;
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8">
@@ -22,7 +32,7 @@ export default async function AdminHome() {
         <Link href="/admin/authors">
           <Card className="p-6 transition-colors hover:border-primary/50">
             <Users className="mb-3 h-6 w-6 text-primary" />
-            <p className="text-2xl font-bold">{users.length}</p>
+            <p className="text-2xl font-bold">{userCount}</p>
             <p className="text-sm text-muted-foreground">
               Authors &amp; admins — invite and manage roles
             </p>

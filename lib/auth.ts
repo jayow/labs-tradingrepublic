@@ -2,11 +2,13 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { PREVIEW, previewProfile } from "@/lib/preview";
 import type { Profile } from "@/lib/database.types";
 
 // Memoized for the duration of a single render pass so multiple components
 // (layout + page) share one auth round-trip.
 export const getSessionProfile = cache(async (): Promise<Profile | null> => {
+  if (PREVIEW) return previewProfile;
   const supabase = await createClient();
   const {
     data: { user },

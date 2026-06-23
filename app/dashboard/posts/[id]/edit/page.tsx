@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import { PostEditor } from "@/components/editor/post-editor";
+import { PREVIEW, previewPostById } from "@/lib/preview";
 
 export const metadata = { title: "Edit post" };
 
@@ -12,6 +13,15 @@ export default async function EditPostPage({
 }) {
   const profile = await requireUser();
   const { id } = await params;
+
+  if (PREVIEW) {
+    const post = previewPostById(id);
+    if (!post) notFound();
+    return (
+      <PostEditor post={post} authorId={profile.id} initialTags={[]} preview />
+    );
+  }
+
   const supabase = await createClient();
 
   // RLS limits this to the author's own post (or any post for admins).

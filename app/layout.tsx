@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, DM_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { PREVIEW } from "@/lib/preview";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -53,6 +54,12 @@ export default function RootLayout({
       className={`${jakarta.variable} ${dmSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        {PREVIEW && (
+          <div className="bg-primary px-4 py-1.5 text-center text-xs font-medium text-primary-foreground">
+            Preview mode · sample data, nothing is saved · connect Supabase for
+            the real thing
+          </div>
+        )}
         {children}
         <Toaster richColors position="top-center" />
       </body>

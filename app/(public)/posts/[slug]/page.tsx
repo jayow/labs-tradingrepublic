@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { createPublicClient } from "@/utils/supabase/public";
 import { Badge } from "@/components/ui/badge";
+import { PREVIEW, previewPostBySlug, previewProfile } from "@/lib/preview";
 
 export const revalidate = 60;
 
@@ -17,6 +18,7 @@ function formatDate(date: string | null) {
 }
 
 async function getPost(slug: string) {
+  if (PREVIEW) return previewPostBySlug(slug);
   const supabase = createPublicClient();
   const { data } = await supabase
     .from("posts")
@@ -67,21 +69,31 @@ export default async function PostPage({
   const post = await getPost(slug);
   if (!post) notFound();
 
-  const supabase = createPublicClient();
-  const { data: author } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .eq("id", post.author_id)
-    .maybeSingle();
+  let author: { id: string; display_name: string | null } | null;
+  let tags: { name: string; slug: string }[] | null;
 
-  const { data: tagLinks } = await supabase
-    .from("post_tags")
-    .select("tag_id")
-    .eq("post_id", post.id);
-  const tagIds = (tagLinks ?? []).map((t) => t.tag_id);
-  const { data: tags } = tagIds.length
-    ? await supabase.from("tags").select("name, slug").in("id", tagIds)
-    : { data: [] };
+  if (PREVIEW) {
+    author = { id: previewProfile.id, display_name: previewProfile.display_name };
+    tags = [];
+  } else {
+    const supabase = createPublicClient();
+    const { data: authorRow } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("id", post.author_id)
+      .maybeSingle();
+    author = authorRow;
+
+    const { data: tagLinks } = await supabase
+      .from("post_tags")
+      .select("tag_id")
+      .eq("post_id", post.id);
+    const tagIds = (tagLinks ?? []).map((t) => t.tag_id);
+    const { data: tagRows } = tagIds.length
+      ? await supabase.from("tags").select("name, slug").in("id", tagIds)
+      : { data: [] };
+    tags = tagRows;
+  }
 
   return (
     <article className="mx-auto w-full max-w-2xl px-4 py-12">

@@ -3,29 +3,36 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { adminUnpublishPost } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PREVIEW, previewPosts, previewProfile } from "@/lib/preview";
 
 export const metadata = { title: "All posts" };
 
 export default async function AdminPostsPage() {
-  const admin = createAdminClient();
+  let posts;
+  const nameById = new Map<string, string | null>();
 
-  const { data: posts } = await admin
-    .from("posts")
-    .select("id, title, slug, status, updated_at, author_id")
-    .order("updated_at", { ascending: false });
+  if (PREVIEW) {
+    posts = previewPosts;
+    nameById.set(previewProfile.id, previewProfile.display_name);
+  } else {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("posts")
+      .select("id, title, slug, status, updated_at, author_id")
+      .order("updated_at", { ascending: false });
+    posts = data;
 
-  const authorIds = Array.from(
-    new Set((posts ?? []).map((p) => p.author_id)),
-  );
-  const { data: authors } = authorIds.length
-    ? await admin
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", authorIds)
-    : { data: [] };
-  const nameById = new Map(
-    (authors ?? []).map((a) => [a.id, a.display_name]),
-  );
+    const authorIds = Array.from(
+      new Set((posts ?? []).map((p) => p.author_id)),
+    );
+    const { data: authors } = authorIds.length
+      ? await admin
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", authorIds)
+      : { data: [] };
+    (authors ?? []).forEach((a) => nameById.set(a.id, a.display_name));
+  }
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">

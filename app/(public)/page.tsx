@@ -1,33 +1,40 @@
 import Image from "next/image";
 import { createPublicClient } from "@/utils/supabase/public";
 import { PostCard } from "@/components/post-card";
+import { PREVIEW, previewPosts, previewProfile } from "@/lib/preview";
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const supabase = createPublicClient();
+  let posts;
+  const authorName = new Map<string, string | null>();
 
-  const { data: posts } = await supabase
-    .from("posts")
-    .select(
-      "id, title, slug, excerpt, cover_image_url, published_at, author_id",
-    )
-    .eq("status", "published")
-    .order("published_at", { ascending: false })
-    .limit(30);
+  if (PREVIEW) {
+    posts = previewPosts.filter((p) => p.status === "published");
+    authorName.set(previewProfile.id, previewProfile.display_name);
+  } else {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("posts")
+      .select(
+        "id, title, slug, excerpt, cover_image_url, published_at, author_id",
+      )
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(30);
+    posts = data;
 
-  const authorIds = Array.from(
-    new Set((posts ?? []).map((p) => p.author_id)),
-  );
-  const { data: authors } = authorIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", authorIds)
-    : { data: [] };
-  const authorName = new Map(
-    (authors ?? []).map((a) => [a.id, a.display_name]),
-  );
+    const authorIds = Array.from(
+      new Set((posts ?? []).map((p) => p.author_id)),
+    );
+    const { data: authors } = authorIds.length
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", authorIds)
+      : { data: [] };
+    (authors ?? []).forEach((a) => authorName.set(a.id, a.display_name));
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12">
