@@ -57,3 +57,23 @@ npm run dev
 
 Open http://localhost:3000. Sign in at `/login`; author tools live at
 `/dashboard`, admin at `/admin`.
+
+## 6. Deploy to Vercel (labs.tradingrepublic.io)
+
+1. Push this repo to GitHub and import it as a new Vercel project (separate from
+   the existing `tr-landingpage` project).
+2. In Vercel → Project → Settings → **Environment Variables**, add (Production):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL=https://labs.tradingrepublic.io`
+3. Deploy.
+4. **Domain:** Vercel → Settings → Domains → add `labs.tradingrepublic.io`, then
+   create the DNS record it shows (a `CNAME` on the `labs` subdomain at your DNS
+   provider for `tradingrepublic.io`).
+5. **Point Supabase at production:** Authentication → URL Configuration:
+   - Site URL: `https://labs.tradingrepublic.io`
+   - Redirect URLs: add `https://labs.tradingrepublic.io/auth/callback`
+
+After DNS propagates, sign in, invite an author, and publish a test post to
+confirm auth, invites, and OG previews work on the live domain.
