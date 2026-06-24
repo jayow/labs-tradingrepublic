@@ -7,9 +7,9 @@ import { requireAdmin } from "@/lib/auth";
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-export type InviteResult = { ok: boolean; message: string };
+export type ActionResult = { ok: boolean; message: string };
 
-export async function inviteAuthor(email: string): Promise<InviteResult> {
+export async function inviteAuthor(email: string): Promise<ActionResult> {
   await requireAdmin();
   const clean = email.trim();
   if (!clean) return { ok: false, message: "Enter an email address." };
@@ -38,22 +38,59 @@ export async function inviteAuthor(email: string): Promise<InviteResult> {
   return { ok: true, message: `Invite sent to ${clean}.` };
 }
 
-export async function setUserRole(formData: FormData) {
+export async function setUserRole(
+  userId: string,
+  role: "admin" | "author",
+): Promise<ActionResult> {
   const me = await requireAdmin();
-  const userId = String(formData.get("userId") ?? "");
-  const role = String(formData.get("role") ?? "");
-  if (role !== "admin" && role !== "author") return;
-  // Don't let an admin demote themselves and lock the team out by accident.
-  if (userId === me.id && role !== "admin") return;
+  if (role !== "admin" && role !== "author") {
+    return { ok: false, message: "Invalid role." };
+  }
+  // Don't let an admin demote themselves and risk locking the team out.
+  if (userId === me.id && role !== "admin") {
+    return { ok: false, message: "You can't remove your own admin role." };
+  }
 
   const admin = createAdminClient();
   const { error } = await admin
     .from("profiles")
     .update({ role })
     .eq("id", userId);
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/admin/authors");
+  return {
+    ok: true,
+    message: role === "admin" ? "Promoted to admin." : "Set to author.",
+  };
+}
+
+export async function deleteUser(userId: string): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (userId === me.id) {
+    return { ok: false, message: "You can't delete your own account." };
+  }
+
+  const admin = createAdminClient();
+
+  // Posts FK is ON DELETE RESTRICT, so a user with posts can't be removed until
+  // their posts are dealt with. Check first for a clear message.
+  const { count } = await admin
+    .from("posts")
+    .select("id", { count: "exact", head: true })
+    .eq("author_id", userId);
+  if (count && count > 0) {
+    return {
+      ok: false,
+      message: `This person has ${count} post${count === 1 ? "" : "s"}. Delete or reassign them first.`,
+    };
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin/authors");
+  return { ok: true, message: "Account deleted." };
 }
 
 export async function adminUnpublishPost(formData: FormData) {

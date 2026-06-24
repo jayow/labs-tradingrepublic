@@ -1,11 +1,10 @@
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { setUserRole } from "../actions";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PREVIEW, previewAuthors } from "@/lib/preview";
 import { InviteForm } from "./invite-form";
+import { AuthorActions } from "./author-actions";
 
 export const metadata = { title: "Authors" };
 
@@ -79,19 +78,11 @@ export default async function AuthorsPage() {
               >
                 {row.role}
               </Badge>
-              {row.id !== me.id && (
-                <form action={setUserRole}>
-                  <input type="hidden" name="userId" value={row.id} />
-                  <input
-                    type="hidden"
-                    name="role"
-                    value={row.role === "admin" ? "author" : "admin"}
-                  />
-                  <Button type="submit" variant="outline" size="sm">
-                    {row.role === "admin" ? "Make author" : "Make admin"}
-                  </Button>
-                </form>
-              )}
+              <AuthorActions
+                userId={row.id}
+                role={row.role}
+                isSelf={row.id === me.id}
+              />
             </div>
           </li>
         ))}
