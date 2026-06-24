@@ -1,11 +1,11 @@
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { inviteAuthor, setUserRole } from "../actions";
+import { setUserRole } from "../actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PREVIEW, previewAuthors } from "@/lib/preview";
+import { InviteForm } from "./invite-form";
 
 export const metadata = { title: "Authors" };
 
@@ -50,24 +50,7 @@ export default async function AuthorsPage() {
       </h1>
 
       <Card className="mb-8 p-5">
-        <form
-          action={inviteAuthor}
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
-        >
-          <div className="flex-1">
-            <label htmlFor="email" className="mb-2 block text-sm font-medium">
-              Invite an author
-            </label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="writer@tradingrepublic.io"
-            />
-          </div>
-          <Button type="submit">Send invite</Button>
-        </form>
+        <InviteForm />
         <p className="mt-2 text-xs text-muted-foreground">
           They receive an email to set a password. New users join as authors;
           promote to admin below.

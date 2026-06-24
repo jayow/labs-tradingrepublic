@@ -7,18 +7,35 @@ import { requireAdmin } from "@/lib/auth";
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-export async function inviteAuthor(formData: FormData) {
+export type InviteResult = { ok: boolean; message: string };
+
+export async function inviteAuthor(email: string): Promise<InviteResult> {
   await requireAdmin();
-  const email = String(formData.get("email") ?? "").trim();
-  if (!email) return;
+  const clean = email.trim();
+  if (!clean) return { ok: false, message: "Enter an email address." };
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+  const { error } = await admin.auth.admin.inviteUserByEmail(clean, {
     redirectTo: `${siteUrl}/auth/callback?next=/accept-invite`,
   });
-  if (error) throw new Error(error.message);
+
+  if (error) {
+    const m = error.message.toLowerCase();
+    if (m.includes("already been registered") || m.includes("already registered")) {
+      return { ok: false, message: "That email already has an account." };
+    }
+    if (m.includes("rate limit")) {
+      return {
+        ok: false,
+        message:
+          "Email rate limit reached — Supabase's built-in sender only allows a few per hour. Set up custom SMTP to lift it.",
+      };
+    }
+    return { ok: false, message: error.message };
+  }
 
   revalidatePath("/admin/authors");
+  return { ok: true, message: `Invite sent to ${clean}.` };
 }
 
 export async function setUserRole(formData: FormData) {
