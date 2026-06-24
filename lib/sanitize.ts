@@ -8,7 +8,7 @@ import type { Json } from "@/lib/database.types";
 // Only iframes whose src matches one of these embed endpoints survive
 // sanitization — the single most important XSS control for user content.
 const ALLOWED_IFRAME =
-  /^https:\/\/(www\.)?(youtube(-nocookie)?\.com\/embed\/[\w-]+|instagram\.com\/(p|reel|tv)\/[^/]+\/embed|tiktok\.com\/embed\/v2\/\d+|facebook\.com\/plugins\/(post|video)\.php)/;
+  /^https:\/\/(www\.)?(youtube(-nocookie)?\.com\/embed\/[\w-]+|instagram\.com\/(p|reel|tv)\/[^/?#]+\/embed|tiktok\.com\/embed\/v2\/\d+|facebook\.com\/plugins\/(post|video)\.php)([/?#][^\s"'<>]*)?$/;
 
 let hooksReady = false;
 

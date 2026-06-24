@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { safeNext } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/button";
 
 // Invite / magic-link / OAuth callback. Supabase returns its result either in
@@ -21,7 +22,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const supabase = createClient();
     const url = new URL(window.location.href);
-    const next = url.searchParams.get("next") || "/dashboard";
+    const next = safeNext(url.searchParams.get("next"));
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
 
     const hashError = hash.get("error_description") || hash.get("error");

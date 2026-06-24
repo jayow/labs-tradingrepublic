@@ -106,11 +106,11 @@ export function PostEditor({
     editorRef.current = editor;
   }, [editor]);
 
-  const doSave = useCallback(async () => {
-    if (!editor) return;
+  const doSave = useCallback(async (): Promise<boolean> => {
+    if (!editor) return false;
     if (preview) {
       setSaveState("saved");
-      return;
+      return true;
     }
     setSaveState("saving");
     try {
@@ -124,9 +124,11 @@ export function PostEditor({
         content_json: JSON.parse(JSON.stringify(editor.getJSON())),
       });
       setSaveState("saved");
+      return true;
     } catch {
       setSaveState("idle");
       toast.error("Couldn't save changes");
+      return false;
     }
   }, [editor, post.id, preview]);
 
@@ -255,7 +257,12 @@ export function PostEditor({
     setPublishing(true);
     try {
       const wasPublished = status === "published";
-      await doSave();
+      // Don't publish stale content if the save failed.
+      const saved = await doSave();
+      if (!saved) {
+        toast.error("Couldn't save — fix that before publishing.");
+        return;
+      }
       await saveTags();
       await publishPost(post.id);
       setStatus("published");
