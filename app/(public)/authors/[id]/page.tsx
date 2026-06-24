@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createPublicClient } from "@/utils/supabase/public";
 import { PostCard } from "@/components/post-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PREVIEW, previewPosts, previewProfile } from "@/lib/preview";
 
 export const revalidate = 60;
@@ -13,13 +14,14 @@ async function getAuthor(id: string) {
           id: previewProfile.id,
           display_name: previewProfile.display_name,
           bio: previewProfile.bio,
+          avatar_url: previewProfile.avatar_url,
         }
       : null;
   }
   const supabase = createPublicClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, display_name, bio")
+    .select("id, display_name, bio, avatar_url")
     .eq("id", id)
     .maybeSingle();
   return data;
@@ -67,11 +69,21 @@ export default async function AuthorPage({
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12">
       <header className="mb-12 border-b border-border pb-8">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">
-          {author.display_name ?? "Author"}
-        </h1>
+        <div className="flex items-center gap-4">
+          <Avatar className="h-14 w-14">
+            {author.avatar_url ? (
+              <AvatarImage src={author.avatar_url} alt="" />
+            ) : null}
+            <AvatarFallback>
+              {(author.display_name ?? "?").slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight">
+            {author.display_name ?? "Author"}
+          </h1>
+        </div>
         {author.bio && (
-          <p className="mt-3 max-w-xl text-muted-foreground">{author.bio}</p>
+          <p className="mt-4 max-w-xl text-muted-foreground">{author.bio}</p>
         )}
       </header>
 

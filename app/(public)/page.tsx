@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { createPublicClient } from "@/utils/supabase/public";
 import { PostCard } from "@/components/post-card";
+import { SearchBar } from "@/components/search-bar";
 import { PREVIEW, previewPosts, previewProfile } from "@/lib/preview";
 
 export const revalidate = 60;
@@ -53,6 +54,9 @@ export default async function HomePage() {
         <p className="mt-3 max-w-md text-muted-foreground">
           Insights, research, and ideas from the Trading Republic team.
         </p>
+        <div className="mt-6 flex w-full justify-center">
+          <SearchBar />
+        </div>
       </header>
 
       {!posts || posts.length === 0 ? (

@@ -31,6 +31,9 @@ export function DashboardHeader({ profile }: { profile: Profile }) {
             </Button>
           )}
           <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard/account">Account</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
             <Link href="/" target="_blank">
               View site
             </Link>
