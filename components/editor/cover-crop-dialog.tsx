@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import {
@@ -23,19 +23,21 @@ export function CoverCropDialog({
   onCancel: () => void;
   onCropped: (blob: Blob) => void;
 }) {
-  const src = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  const [src, setSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [area, setArea] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Revoke the object URL when it changes / on unmount. Control state resets
-  // naturally because the parent remounts this dialog per file (keyed).
+  // Read the file as a data URL. Stable across renders, and avoids the
+  // object-URL revoke race under React Strict Mode that was blanking the
+  // preview (the URL got revoked before the image could decode).
   useEffect(() => {
-    return () => {
-      if (src) URL.revokeObjectURL(src);
-    };
-  }, [src]);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setSrc(reader.result as string);
+    reader.readAsDataURL(file);
+  }, [file]);
 
   const onComplete = useCallback(
     (_a: Area, pixels: Area) => setArea(pixels),
