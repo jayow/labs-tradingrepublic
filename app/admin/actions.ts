@@ -9,37 +9,11 @@ const siteUrl =
 
 export type ActionResult = { ok: boolean; message: string };
 
-export async function inviteAuthor(email: string): Promise<ActionResult> {
-  await requireAdmin();
-  const clean = email.trim();
-  if (!clean) return { ok: false, message: "Enter an email address." };
-
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.inviteUserByEmail(clean, {
-    redirectTo: `${siteUrl}/auth/callback?next=/accept-invite`,
-  });
-
-  if (error) {
-    const m = error.message.toLowerCase();
-    if (m.includes("already been registered") || m.includes("already registered")) {
-      return { ok: false, message: "That email already has an account." };
-    }
-    if (m.includes("rate limit")) {
-      return {
-        ok: false,
-        message:
-          "Email rate limit reached — Supabase's built-in sender only allows a few per hour. Set up custom SMTP to lift it.",
-      };
-    }
-    return { ok: false, message: error.message };
-  }
-
-  revalidatePath("/admin/authors");
-  return { ok: true, message: `Invite sent to ${clean}.` };
-}
-
-// Generates an invite link WITHOUT sending an email — sidesteps the built-in
-// email rate limit. The admin shares the link however they like.
+// Invites are issued as a copy-able link built on Supabase's server-verified
+// token_hash flow (/auth/confirm). We don't send the invite via Supabase's
+// email because the free-tier default sender can't use a custom (secure)
+// template and is rate-limited; email invites can be re-added once custom SMTP
+// is configured (see supabase/email-templates/).
 export async function createInviteLink(
   email: string,
 ): Promise<ActionResult & { link?: string }> {
@@ -51,7 +25,6 @@ export async function createInviteLink(
   const { data, error } = await admin.auth.admin.generateLink({
     type: "invite",
     email: clean,
-    options: { redirectTo: `${siteUrl}/auth/callback?next=/accept-invite` },
   });
 
   if (error) {
@@ -62,11 +35,18 @@ export async function createInviteLink(
     return { ok: false, message: error.message };
   }
 
+  // Build our own token_hash link (server-verified via /auth/confirm) rather
+  // than handing out the implicit-flow action_link with tokens in the URL.
+  const tokenHash = data.properties?.hashed_token;
+  if (!tokenHash) {
+    return { ok: false, message: "Could not generate invite link." };
+  }
+
   revalidatePath("/admin/authors");
   return {
     ok: true,
     message: "Invite link created.",
-    link: data.properties?.action_link,
+    link: `${siteUrl}/auth/confirm?token_hash=${tokenHash}&type=invite&next=/accept-invite`,
   };
 }
 

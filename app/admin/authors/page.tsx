@@ -51,10 +51,9 @@ export default async function AuthorsPage() {
       <Card className="mb-8 p-5">
         <InviteForm />
         <p className="mt-2 text-xs text-muted-foreground">
-          &ldquo;Send invite&rdquo; emails them a link (limited to a few per hour
-          on the built-in sender). &ldquo;Copy link&rdquo; gives you the same
-          link to share yourself, with no email limit. New users join as
-          authors; promote to admin below.
+          Generates a secure invite link and copies it to your clipboard, share
+          it with the author however you like. They set a password and join as
+          an author; promote to admin below.
         </p>
       </Card>
 
