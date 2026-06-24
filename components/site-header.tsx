@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function SiteHeader() {
@@ -18,9 +19,21 @@ export function SiteHeader() {
             Labs
           </span>
         </Link>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/login">Sign in</Link>
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground"
+          >
+            <Link href="/search" aria-label="Search posts">
+              <Search className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/login">Sign in</Link>
+          </Button>
+        </div>
       </div>
     </header>
   );

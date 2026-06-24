@@ -28,8 +28,7 @@ export const metadata: Metadata = {
     default: "Trading Republic Labs",
     template: "%s · Trading Republic Labs",
   },
-  description:
-    "Insights, research, and ideas from the Trading Republic team.",
+  description: "Insights, research, and ideas from Trading Republic.",
   icons: {
     icon: [
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
