@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { toast } from "sonner";
 import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -54,6 +54,9 @@ export function PostEditor({
   const [tagsValue, setTagsValue] = useState(initialTags.join(", "));
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Live editor ref so the paste/drop handlers (captured once by editorProps)
+  // always reach the current editor instance.
+  const editorRef = useRef<Editor | null>(null);
 
   const editor = useEditor({
     extensions: getExtensions(),
@@ -64,9 +67,38 @@ export function PostEditor({
         class:
           "tiptap prose-tr min-h-[360px] px-4 py-4 focus:outline-none",
       },
+      handlePaste: (_view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (file) {
+              void insertImageFile(file);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      handleDrop: (_view, event) => {
+        const files = (event as DragEvent).dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const images = Array.from(files).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (images.length === 0) return false;
+        event.preventDefault();
+        images.forEach((f) => void insertImageFile(f));
+        return true;
+      },
     },
     onUpdate: () => scheduleSave(),
   });
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   const doSave = useCallback(async () => {
     if (!editor) return;
@@ -110,10 +142,11 @@ export function PostEditor({
       .publicUrl;
   }
 
-  async function handleInlineImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !editor) return;
+  // Upload a File and insert it at the cursor — shared by the toolbar button,
+  // paste, and drag-and-drop.
+  async function insertImageFile(file: File) {
+    const ed = editorRef.current;
+    if (!ed) return;
     if (preview) {
       toast.info("Uploads are disabled in preview mode.");
       return;
@@ -121,12 +154,18 @@ export function PostEditor({
     setUploading(true);
     try {
       const url = await uploadFile(file);
-      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+      ed.chain().focus().setImage({ src: url, alt: file.name }).run();
     } catch {
       toast.error("Image upload failed");
     } finally {
       setUploading(false);
     }
+  }
+
+  function handleInlineImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) void insertImageFile(file);
   }
 
   async function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
