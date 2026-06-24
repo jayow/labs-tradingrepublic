@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import {
@@ -14,30 +14,22 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { getCroppedBlob } from "@/lib/crop-image";
 
+// `src` is always a data URL (the parent reads files / fetches existing covers
+// into one), so the crop canvas is never tainted. Parent remounts this per open
+// (keyed), so crop/zoom start fresh with no reset effect needed.
 export function CoverCropDialog({
-  file,
+  src,
   onCancel,
   onCropped,
 }: {
-  file: File | null;
+  src: string | null;
   onCancel: () => void;
   onCropped: (blob: Blob) => void;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [area, setArea] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
-
-  // Read the file as a data URL. Stable across renders, and avoids the
-  // object-URL revoke race under React Strict Mode that was blanking the
-  // preview (the URL got revoked before the image could decode).
-  useEffect(() => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setSrc(reader.result as string);
-    reader.readAsDataURL(file);
-  }, [file]);
 
   const onComplete = useCallback(
     (_a: Area, pixels: Area) => setArea(pixels),
@@ -48,8 +40,7 @@ export function CoverCropDialog({
     if (!src || !area) return;
     setBusy(true);
     try {
-      const blob = await getCroppedBlob(src, area);
-      onCropped(blob);
+      onCropped(await getCroppedBlob(src, area));
     } finally {
       setBusy(false);
     }
@@ -57,7 +48,7 @@ export function CoverCropDialog({
 
   return (
     <Dialog
-      open={!!file}
+      open={!!src}
       onOpenChange={(open) => {
         if (!open) onCancel();
       }}
@@ -82,8 +73,11 @@ export function CoverCropDialog({
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="w-12 text-xs text-muted-foreground">Zoom</span>
+          <span className="w-10 shrink-0 text-xs text-muted-foreground">
+            Zoom
+          </span>
           <Slider
+            className="flex-1 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-white/20"
             min={1}
             max={3}
             step={0.01}

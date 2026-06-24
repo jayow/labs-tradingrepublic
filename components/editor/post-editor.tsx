@@ -39,6 +39,7 @@ export function PostEditor({
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [status, setStatus] = useState(post.status);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -53,7 +54,9 @@ export function PostEditor({
   const cover = useRef(post.cover_image_url ?? "");
 
   const [coverPreview, setCoverPreview] = useState(post.cover_image_url ?? "");
-  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropState, setCropState] = useState<{ src: string | null; key: number }>(
+    { src: null, key: 0 },
+  );
   const [tagsValue, setTagsValue] = useState(initialTags.join(", "));
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -174,6 +177,14 @@ export function PostEditor({
     if (file) void insertImageFile(file);
   }
 
+  function openCropper(src: string) {
+    setCropState((s) => ({ src, key: s.key + 1 }));
+  }
+  function closeCropper() {
+    setCropState((s) => ({ ...s, src: null }));
+  }
+
+  // New cover from a file picker.
   function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -182,11 +193,32 @@ export function PostEditor({
       toast.info("Uploads are disabled in preview mode.");
       return;
     }
-    setCropFile(file); // open the crop/position dialog
+    const reader = new FileReader();
+    reader.onload = () => openCropper(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  // Re-crop the current cover. Fetch it to a data URL so the crop canvas is
+  // never tainted (Supabase storage allows CORS).
+  async function handleAdjustCover() {
+    if (preview) {
+      toast.info("Uploads are disabled in preview mode.");
+      return;
+    }
+    if (!cover.current) return;
+    try {
+      const res = await fetch(cover.current);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onload = () => openCropper(reader.result as string);
+      reader.readAsDataURL(blob);
+    } catch {
+      toast.error("Couldn't load cover for editing");
+    }
   }
 
   async function handleCroppedCover(blob: Blob) {
-    setCropFile(null);
+    closeCropper();
     setUploading(true);
     try {
       const file = new File([blob], "cover.jpg", { type: "image/jpeg" });
@@ -324,6 +356,13 @@ export function PostEditor({
 
       {/* Cover */}
       <div className="mb-4">
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCover}
+        />
         {coverPreview ? (
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -332,29 +371,38 @@ export function PostEditor({
               alt="Cover"
               className="aspect-[2/1] w-full rounded-xl object-cover"
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="absolute right-3 top-3"
-              onClick={() => {
-                cover.current = "";
-                setCoverPreview("");
-                scheduleSave();
-              }}
-            >
-              Remove cover
-            </Button>
+            <div className="absolute right-3 top-3 flex gap-2">
+              <Button variant="secondary" size="sm" onClick={handleAdjustCover}>
+                Adjust
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => coverInputRef.current?.click()}
+              >
+                Replace
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  cover.current = "";
+                  setCoverPreview("");
+                  scheduleSave();
+                }}
+              >
+                Remove
+              </Button>
+            </div>
           </div>
         ) : (
-          <label className="flex aspect-[3/1] w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:bg-accent">
+          <button
+            type="button"
+            onClick={() => coverInputRef.current?.click()}
+            className="flex aspect-[3/1] w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:bg-accent"
+          >
             {uploading ? "Uploading…" : "Add a cover image"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleCover}
-            />
-          </label>
+          </button>
         )}
       </div>
 
@@ -418,9 +466,9 @@ export function PostEditor({
       </div>
 
       <CoverCropDialog
-        key={cropFile ? `${cropFile.name}-${cropFile.size}-${cropFile.lastModified}` : "none"}
-        file={cropFile}
-        onCancel={() => setCropFile(null)}
+        key={cropState.key}
+        src={cropState.src}
+        onCancel={closeCropper}
         onCropped={handleCroppedCover}
       />
     </div>
