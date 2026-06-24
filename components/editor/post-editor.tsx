@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Toolbar } from "./toolbar";
+import { CoverCropDialog } from "./cover-crop-dialog";
 
 type SaveState = "idle" | "saving" | "saved";
 
@@ -52,6 +53,7 @@ export function PostEditor({
   const cover = useRef(post.cover_image_url ?? "");
 
   const [coverPreview, setCoverPreview] = useState(post.cover_image_url ?? "");
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [tagsValue, setTagsValue] = useState(initialTags.join(", "));
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,7 +174,7 @@ export function PostEditor({
     if (file) void insertImageFile(file);
   }
 
-  async function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -180,8 +182,14 @@ export function PostEditor({
       toast.info("Uploads are disabled in preview mode.");
       return;
     }
+    setCropFile(file); // open the crop/position dialog
+  }
+
+  async function handleCroppedCover(blob: Blob) {
+    setCropFile(null);
     setUploading(true);
     try {
+      const file = new File([blob], "cover.jpg", { type: "image/jpeg" });
       const url = await uploadFile(file);
       cover.current = url;
       setCoverPreview(url);
@@ -408,6 +416,13 @@ export function PostEditor({
           </p>
         </div>
       </div>
+
+      <CoverCropDialog
+        key={cropFile ? `${cropFile.name}-${cropFile.size}-${cropFile.lastModified}` : "none"}
+        file={cropFile}
+        onCancel={() => setCropFile(null)}
+        onCropped={handleCroppedCover}
+      />
     </div>
   );
 }
