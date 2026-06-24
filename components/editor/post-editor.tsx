@@ -113,7 +113,10 @@ export function PostEditor({
         title: title.current.trim() || "Untitled",
         excerpt: excerpt.current.trim() || null,
         cover_image_url: cover.current || null,
-        content_json: editor.getJSON(),
+        // ProseMirror builds node.attrs with Object.create(null); Next's server
+        // action serialization drops null-prototype objects, silently losing
+        // every media node's src. Round-trip to plain objects first.
+        content_json: JSON.parse(JSON.stringify(editor.getJSON())),
       });
       setSaveState("saved");
     } catch {
