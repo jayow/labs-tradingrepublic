@@ -2,6 +2,7 @@ import "server-only";
 import { generateHTML } from "@tiptap/html";
 import DOMPurify from "isomorphic-dompurify";
 import { getExtensions } from "@/lib/tiptap/extensions";
+import { cleanTiptapDoc } from "@/lib/tiptap/clean";
 import type { Json } from "@/lib/database.types";
 
 // Only iframes whose src matches one of these embed endpoints survive
@@ -41,8 +42,9 @@ function ensureHooks() {
 // result in posts.content_html so public reads are a single column fetch.
 export function renderPostHtml(json: Json): string {
   ensureHooks();
+  const clean = cleanTiptapDoc(json);
   const raw = generateHTML(
-    json as Parameters<typeof generateHTML>[0],
+    clean as Parameters<typeof generateHTML>[0],
     getExtensions(),
   );
   return DOMPurify.sanitize(raw, {

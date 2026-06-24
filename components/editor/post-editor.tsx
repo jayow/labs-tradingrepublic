@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { getExtensions } from "@/lib/tiptap/extensions";
+import { cleanTiptapDoc } from "@/lib/tiptap/clean";
 import {
   savePost,
   setPostTags,
@@ -60,7 +61,7 @@ export function PostEditor({
 
   const editor = useEditor({
     extensions: getExtensions(),
-    content: post.content_json as object,
+    content: cleanTiptapDoc(post.content_json) as object,
     immediatelyRender: false,
     editorProps: {
       attributes: {
