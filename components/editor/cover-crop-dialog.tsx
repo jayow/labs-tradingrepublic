@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 import {
   Dialog,
   DialogContent,
