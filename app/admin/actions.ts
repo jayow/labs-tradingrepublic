@@ -38,6 +38,38 @@ export async function inviteAuthor(email: string): Promise<ActionResult> {
   return { ok: true, message: `Invite sent to ${clean}.` };
 }
 
+// Generates an invite link WITHOUT sending an email — sidesteps the built-in
+// email rate limit. The admin shares the link however they like.
+export async function createInviteLink(
+  email: string,
+): Promise<ActionResult & { link?: string }> {
+  await requireAdmin();
+  const clean = email.trim();
+  if (!clean) return { ok: false, message: "Enter an email address." };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email: clean,
+    options: { redirectTo: `${siteUrl}/auth/callback?next=/accept-invite` },
+  });
+
+  if (error) {
+    const m = error.message.toLowerCase();
+    if (m.includes("already been registered") || m.includes("already registered")) {
+      return { ok: false, message: "That email already has an account." };
+    }
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin/authors");
+  return {
+    ok: true,
+    message: "Invite link created.",
+    link: data.properties?.action_link,
+  };
+}
+
 export async function setUserRole(
   userId: string,
   role: "admin" | "author",
