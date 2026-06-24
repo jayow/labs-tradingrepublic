@@ -210,11 +210,12 @@ export function PostEditor({
     }
     setPublishing(true);
     try {
+      const wasPublished = status === "published";
       await doSave();
       await saveTags();
       await publishPost(post.id);
       setStatus("published");
-      toast.success("Published");
+      toast.success(wasPublished ? "Changes are live" : "Published");
       router.refresh();
     } catch {
       toast.error("Couldn't publish");
@@ -279,7 +280,7 @@ export function PostEditor({
               </a>
             </Button>
           )}
-          {status === "published" ? (
+          {status === "published" && (
             <Button
               variant="outline"
               size="sm"
@@ -288,15 +289,16 @@ export function PostEditor({
             >
               Unpublish
             </Button>
-          ) : (
-            <Button size="sm" onClick={handlePublish} disabled={publishing}>
-              {publishing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Publish"
-              )}
-            </Button>
           )}
+          <Button size="sm" onClick={handlePublish} disabled={publishing}>
+            {publishing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : status === "published" ? (
+              "Update"
+            ) : (
+              "Publish"
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
