@@ -31,6 +31,17 @@ async function getPost(slug: string) {
   return data;
 }
 
+function buildDescription(
+  excerpt: string | null,
+  contentHtml: string | null,
+): string | undefined {
+  if (excerpt) return excerpt;
+  if (!contentHtml) return undefined;
+  const text = contentHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return undefined;
+  return text.length > 157 ? `${text.slice(0, 157).trimEnd()}…` : text;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -41,20 +52,24 @@ export async function generateMetadata({
   if (!post) return { title: "Not found" };
 
   const images = post.cover_image_url ? [post.cover_image_url] : undefined;
+  const description = buildDescription(post.excerpt, post.content_html);
+  const path = `/posts/${post.slug}`;
   return {
     title: post.title,
-    description: post.excerpt ?? undefined,
+    description,
+    alternates: { canonical: path },
     openGraph: {
       title: post.title,
-      description: post.excerpt ?? undefined,
+      description,
       type: "article",
+      url: path,
       publishedTime: post.published_at ?? undefined,
       images,
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
-      description: post.excerpt ?? undefined,
+      description,
       images,
     },
   };

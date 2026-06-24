@@ -31,7 +31,7 @@ In Supabase → Authentication:
   (authoring is invite-only; the only way in is an admin invite).
 - **URL Configuration**:
   - Site URL: `http://localhost:3000` (dev) — later `https://labs.tradingrepublic.io`.
-  - Redirect URLs: add `http://localhost:3000/auth/callback` (and the prod
+  - Redirect URLs: add `http://localhost:3000/auth/confirm` (and the prod
     equivalent once deployed).
 
 ## 4. Bootstrap the first admin (one-time)
@@ -73,7 +73,7 @@ Open http://localhost:3000. Sign in at `/login`; author tools live at
    provider for `tradingrepublic.io`).
 5. **Point Supabase at production:** Authentication → URL Configuration:
    - Site URL: `https://labs.tradingrepublic.io`
-   - Redirect URLs: add `https://labs.tradingrepublic.io/auth/callback`
+   - Redirect URLs: add `https://labs.tradingrepublic.io/auth/confirm`
 
 After DNS propagates, sign in, invite an author, and publish a test post to
 confirm auth, invites, and OG previews work on the live domain.
