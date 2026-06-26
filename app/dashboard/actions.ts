@@ -3,25 +3,25 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { requireUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import { renderPostHtml } from "@/lib/sanitize";
 import { PREVIEW } from "@/lib/preview";
 import type { Json } from "@/lib/database.types";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
 
-type DB = SupabaseClient<Database>;
-
-async function uniqueSlug(
-  supabase: DB,
-  base: string,
-  excludeId?: string,
-): Promise<string> {
+// Slug uniqueness is global (posts.slug has a UNIQUE constraint), but a normal
+// RLS-scoped client can't see other authors' drafts, so two authors would both
+// land on "untitled" and the second write would fail the constraint. Check
+// existence with the service-role client so we compare against every slug; the
+// actual insert/update stays on the caller's RLS-scoped client, so write
+// authorization is unchanged.
+async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
+  const admin = createAdminClient();
   const root = slugify(base);
   for (let i = 0; ; i++) {
     const candidate = i === 0 ? root : `${root}-${i + 1}`;
-    const { data } = await supabase
+    const { data } = await admin
       .from("posts")
       .select("id")
       .eq("slug", candidate)
@@ -36,7 +36,7 @@ export async function createDraft() {
   }
   const profile = await requireUser();
   const supabase = await createClient();
-  const slug = await uniqueSlug(supabase, "untitled");
+  const slug = await uniqueSlug("untitled");
 
   const { data, error } = await supabase
     .from("posts")
@@ -72,7 +72,7 @@ export async function savePost(
 
   const slug =
     current?.status === "draft"
-      ? await uniqueSlug(supabase, input.title || "untitled", id)
+      ? await uniqueSlug(input.title || "untitled", id)
       : undefined;
 
   const { error } = await supabase
