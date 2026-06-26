@@ -36,7 +36,11 @@ export async function createDraft() {
   }
   const profile = await requireUser();
   const supabase = await createClient();
-  const slug = await uniqueSlug("untitled");
+  // A fresh draft only needs a globally-unique placeholder slug; it gets
+  // re-derived from the title on first save. A random suffix is collision-proof
+  // without the extra round-trips of a uniqueSlug lookup (which matters because
+  // the DB is a cross-region round-trip away).
+  const slug = `untitled-${crypto.randomUUID().slice(0, 8)}`;
 
   const { data, error } = await supabase
     .from("posts")
